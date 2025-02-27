@@ -1,10 +1,8 @@
-from celery import Celery
+from app.celery_config import celery
 from app.pypi_checker import get_latest_version
 from app.database import users_collection
 from app.email_sender import send_email
 import asyncio
-
-celery = Celery("tasks", broker="redis://redis:6379", backend="redis://redis:6379")
 
 @celery.task
 def check_for_updates_task():
@@ -12,13 +10,19 @@ def check_for_updates_task():
     loop.run_until_complete(check_for_updates())
 
 async def check_for_updates():
+    """Check PyPI for updates for each user's tracked libraries"""
     users = await users_collection.find().to_list(100)
+
     for user in users:
-        for library in user["libraries"]:
+        email = user["email"]
+        libraries = user["libraries"]
+        
+        updates = []
+        for library in libraries:
             latest_version = await get_latest_version(library)
             if latest_version:
-                send_email(
-                    user["email"],
-                    f"Update Available for {library}",
-                    f"A new version ({latest_version}) of {library} is available on PyPI."
-                )
+                updates.append(f"{library}: {latest_version}")
+
+        if updates:
+            body = "The following libraries have new updates available:\n\n" + "\n".join(updates)
+            send_email(email, "Library Updates Available", body)

@@ -1,26 +1,46 @@
-version: '3'
-
+version: "3.8"
 services:
-  FastApi:
+  app:
     build: .
-    container_name: update_check_app
-    command: python main.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/usr/stc/app
-    ports: 
+    ports:
       - "8000:8000"
     depends_on:
-      - mndb
+      - mongo
+      - redis
+    env_file:
+      - .env
 
-  mndb:
-    image: MongoDb
-    container_name: mndb
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
     volumes:
-      - appdata:var/lib.mongodb/data
-  
-  Celery:
-    image: Celery
-    environment: 
+      - mongo_data:/data/db
 
-  volumes:
-    appdata: Null
+  redis:
+    image: "redis:alpine"
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: .
+    command: ["celery", "-A", "app.tasks", "worker", "--loglevel=info"]
+    depends_on:
+      - redis
+      - app
+    env_file:
+      - .env
+
+  celery_beat:
+    build: .
+    command: ["celery", "-A", "app.tasks", "beat", "--loglevel=info"]
+    depends_on:
+      - redis
+      - app
+    env_file:
+      - .env
+
+volumes:
+  mongo_data:
