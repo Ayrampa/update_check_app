@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.database import users_collection
-from app.models import User
-from app.tasks import check_for_updates_task
+from app.model import User
+from app.task import check_for_updates_task
 
 router = APIRouter()
 

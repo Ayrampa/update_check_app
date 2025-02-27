@@ -1,5 +1,5 @@
 from app.celery_config import celery
-from app.pypi_checker import get_latest_version
+from app.pypi_updates_checker import get_latest_version
 from app.database import users_collection
 from app.email_sender import send_email
 import asyncio

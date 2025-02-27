@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+      - redis
+    env_file:
+      - .env
+
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: "redis:alpine"
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: .
+    command: ["celery", "-A", "app.celery_config", "worker", "--loglevel=info"]
+    depends_on:
+      - redis
+      - app
+    env_file:
+      - .env
+
+  celery_beat:
+    build: .
+    command: ["celery", "-A", "app.celery_config", "beat", "--loglevel=info"]
+    depends_on:
+      - redis
+      - app
+      - celery_worker
+    env_file:
+      - .env
+
+volumes:
+  mongo_data:
