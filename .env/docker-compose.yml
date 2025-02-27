@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  FastApi:
+    build: .
+    container_name: update_check_app
+    command: python main.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/usr/stc/app
+    ports: 
+      - "8000:8000"
+    depends_on:
+      - mndb
+
+  mndb:
+    image: MongoDb
+    container_name: mndb
+    volumes:
+      - appdata:var/lib.mongodb/data
+  
+  Celery:
+    image: Celery
+    environment: 
+
+  volumes:
+    appdata: Null
