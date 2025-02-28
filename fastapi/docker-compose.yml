@@ -2,7 +2,9 @@ version: "3.8"
 
 services:
   fastapi:
-    build: .
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     depends_on:
@@ -10,6 +12,8 @@ services:
       - redis
     env_file:
       - .env
+    networks:
+      - app-network 
 
   mongo:
     image: mongo
@@ -17,8 +21,8 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
-
+      - ./mongo_data:/data/db
+      
   redis:
     image: redis
     container_name: redis
@@ -26,11 +30,15 @@ services:
       - "6379:6379"
 
   celery:
-    build: .
+    build:
+      context: ./celery
+      dockerfile: Dockerfile
     command: ["celery", "-A", "app.celery_worker.celery", "worker"]
     depends_on:
       - redis
       - fastapi
+    networks:
+      - app-network
 
   celery-beat:
     build: .
@@ -38,5 +46,6 @@ services:
     depends_on:
       - redis
 
-volumes:
-  mongo_data:
+networks:
+  app-network:
+    driver: bridge

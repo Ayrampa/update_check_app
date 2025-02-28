@@ -1,14 +1,24 @@
 from celery import Celery
-from .config import REDIS_BROKER
-from celery.schedules import crontab
+import requests
 
-celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
-celery.conf.beat_schedule = {}
-celery.conf.timezone = "UTC"
+# Initialize Celery
+celery_app = Celery(
+    "worker",
+    broker="redis://redis:6379/0",
+    backend="redis://redis:6379/0"
+)
 
-celery.conf.beat_schedule = {
-    "check-updates-daily": {
-        "task": "app.tasks.check_library_updates",
-        "schedule": crontab(hour=0, minute=0),  # Runs every day at midnight
-    },
-}
+@celery_app.task
+def check_library_updates(libraries):
+    """Check PyPI for updates for a list of libraries."""
+    updates = {}
+
+    for lib in libraries:
+        response = requests.get(f"https://pypi.org/pypi/{lib}/json")
+        if response.status_code == 200:
+            latest_version = response.json()["info"]["version"]
+            updates[lib] = latest_version
+        else:
+            updates[lib] = "Not found"
+
+    return updates

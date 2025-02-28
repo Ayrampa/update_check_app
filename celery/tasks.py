@@ -1,7 +1,7 @@
 import requests
-from .celery_worker import celery
-from .database import users_collection
-from .email_utils import send_email
+from celery_worker import celery
+from database import users_collection
+# from email_utils import send_email
 
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 
@@ -18,10 +18,11 @@ async def check_library_updates():
                     updates.append(f"{lib}: {latest_version}")
                     user["installed_versions"] = user.get("installed_versions", {})
                     user["installed_versions"][lib] = latest_version
+                    return True
 
-        if updates:
-            update_message = "New updates available:\n" + "\n".join(updates)
-            send_email(user["email"], "Library Updates", update_message)
-            await users_collection.update_one(
-                {"email": user["email"]}, {"$set": {"installed_versions": user["installed_versions"]}}
-            )
+        # if updates:
+        #     update_message = "New updates available:\n" + "\n".join(updates)
+        #     send_email(user["email"], "Library Updates", update_message)
+        #     await users_collection.update_one(
+        #         {"email": user["email"]}, {"$set": {"installed_versions": user["installed_versions"]}}
+        #     )
