@@ -1,6 +1,7 @@
 version: "3.8"
+
 services:
-  app:
+  fastapi:
     build: .
     ports:
       - "8000:8000"
@@ -12,36 +13,30 @@ services:
 
   mongo:
     image: mongo
-    restart: always
+    container_name: mongo
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
 
   redis:
-    image: "redis:alpine"
-    restart: always
+    image: redis
+    container_name: redis
     ports:
       - "6379:6379"
 
-  celery_worker:
+  celery:
     build: .
-    command: ["celery", "-A", "app.celery_config", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "app.celery_worker.celery", "worker"]
     depends_on:
       - redis
-      - app
-    env_file:
-      - .env
+      - fastapi
 
-  celery_beat:
+  celery-beat:
     build: .
-    command: ["celery", "-A", "app.celery_config", "beat", "--loglevel=info"]
+    command: ["celery", "-A", "app.celery_worker.celery", "beat", "--scheduler", "celery.beat.schedulers:PersistentScheduler", "--loglevel=info"]
     depends_on:
       - redis
-      - app
-      - celery_worker
-    env_file:
-      - .env
 
 volumes:
   mongo_data:
