@@ -22,3 +22,9 @@ curl -X POST "http://localhost:8000/users/" -H "Content-Type: application/json" 
      -d '{"name": "John Doe", "email": "john@example.com", "libraries": ["fastapi", "pydantic"]}'
 
      curl -X POST "http://localhost:8000/check-updates/"
+
+
+
+
+     docker compose exec mongo
+     
