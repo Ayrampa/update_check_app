@@ -28,7 +28,7 @@ class UserCreate(BaseModel):
     name: str
     password: str
     email: EmailStr
-
+    
 # Pydantic Model for Updating User Libraries
 class UpdateLibraries(BaseModel):
     libraries: list[str]
@@ -45,10 +45,9 @@ async def register_user(input_data: UserCreate):
         raise HTTPException(status_code=400, detail="User already exists")
     # Hash the password and add new user to dictionary in database
     hashed_password = pwd_context.hash(input_data.password)
-    user_data = {"name": input_data.name, "password": hashed_password, "email": input_data.email}
+    user_data = {"name": input_data.name, "password": hashed_password, "email": input_data.email, "libraries": {}}
     await users_collection.insert_one(user_data)
     return {"message": "User added successfully"}
-
 # Add/Update Python Libraries for a User
 @app.put("/users/{email}/libraries/")
 async def update_libraries(email: str, update_data: UpdateLibraries):
@@ -57,18 +56,53 @@ async def update_libraries(email: str, update_data: UpdateLibraries):
         raise HTTPException(status_code=404, detail="User not found")
     # Retrieve existing libraries
     existing_libraries = existing_user.get("libraries", {})
+    valid_libraries = {}
+    invalid_libraries = []
     for lib in update_data.libraries:
-        if lib not in existing_libraries:  # Only fetch version if new
+        if lib not in existing_libraries:  # Only fetch if it's a new library
             response = requests.get(PYPI_URL.format(lib))
             if response.status_code == 200:
                 latest_version = response.json()["info"]["version"]
-                existing_libraries[lib] = latest_version  # Add new library with version
-    # Update database with the merged libraries
-    await users_collection.update_one(
-        {"email": email},
-        {"$set": {"libraries": existing_libraries}}
-    )
-    return {"message": "Libraries updated successfully", "libraries": existing_libraries}
+                valid_libraries[lib] = latest_version  # Add to valid list
+            else:
+                invalid_libraries.append(lib)  # Mark as invalid
+    # Merge valid libraries with existing ones
+    existing_libraries.update(valid_libraries)
+    # Update only if there are new valid libraries
+    if valid_libraries:
+        await users_collection.update_one(
+            {"email": email},
+            {"$set": {"libraries": existing_libraries}}
+        )
+    return {
+        "message": "Library update completed",
+        "added_libraries": valid_libraries,
+        "invalid_libraries": invalid_libraries
+    }
+    
+    
+    
+    
+    
+    
+    
+    # invalid_libraries = []
+    # for lib in update_data.libraries:
+    #     if lib not in existing_libraries:  # Only fetch version if new
+    #         response = requests.get(PYPI_URL.format(lib))
+    #         if response.status_code == 200:
+    #             latest_version = response.json()["info"]["version"]
+    #             existing_libraries[lib] = latest_version  # Add new library with version
+    #         else:
+    #             invalid_libraries.append(lib)
+    #             #print(f'{"message": "The library {invalid_libraries[lib]} does not exist."}')
+
+    # # Update database with the merged libraries
+    # await users_collection.update_one(
+    #     {"email": email},
+    #     {"$set": {"libraries": existing_libraries}}
+    # )
+    # return {"message": "Libraries updated successfully", "libraries": existing_libraries}
 
 # Get User Information (Including Libraries)
 @app.get("/users/{email}")
@@ -76,10 +110,11 @@ async def get_user(email: str):
     user = await users_collection.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-
     # Convert MongoDB ObjectId to string for JSON response
     user["_id"] = str(user["_id"])
     return user
+
+
 
 # Get list of unique libraries and check 
 

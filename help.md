@@ -17,7 +17,7 @@ http://localhost:8000/users/?name=Ann&email=ann@example.com&libraries=pandas&lib
 
 
 # Add libraries
-curl -X PUT "http://localhost:8000/users/lmb11@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas", "seaborned"]}'
+curl -X PUT "http://localhost:8000/users/lmb11@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas", "seaborned", "numpy"]}'
 
 
 # Add user
