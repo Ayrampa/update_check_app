@@ -13,6 +13,7 @@ import requests
 Function that will get user name, email and register him - add to database.
     user name: str
     user email: EmailStr 
+    user password: str
 """
 
 load_dotenv()
@@ -27,7 +28,6 @@ class UserCreate(BaseModel):
     name: str
     password: str
     email: EmailStr
-    libraries: list[str] = []
 
 # Pydantic Model for Updating User Libraries
 class UpdateLibraries(BaseModel):
@@ -45,15 +45,7 @@ async def register_user(input_data: UserCreate):
         raise HTTPException(status_code=400, detail="User already exists")
     # Hash the password and add new user to dictionary in database
     hashed_password = pwd_context.hash(input_data.password)
-    # user_data = {
-    #     "name" = input_data.name,
-    #     "password" = hashed_password,
-    #     "email" = input_data.email,
-    #     "libraries" = input_data.libraries,
-    # }
-    user_data = {"name": input_data.name, "password": hashed_password, "email": input_data.email, "libraries": input_data.libraries}
-    #user_data = input_data.model_dump()
-    # user_data["password"] = hashed_password
+    user_data = {"name": input_data.name, "password": hashed_password, "email": input_data.email}
     await users_collection.insert_one(user_data)
     return {"message": "User added successfully"}
 
@@ -63,23 +55,65 @@ async def update_libraries(email: str, update_data: UpdateLibraries):
     existing_user = await users_collection.find_one({"email": email})
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Merge existing and new libraries (avoid duplicates)
-    new_libraries = list(set(existing_user.get("libraries", []) + update_data.libraries))
-    lib_versions = {}
-    for lib in new_libraries:
-        response = requests.get(PYPI_URL.format(lib))
-        if response.status_code == 200:
-            latest_version = response.json()["info"]["version"]
-            lib_versions[lib] = latest_version
-    # Update user document in MongoDB
+    # Retrieve existing libraries
+    existing_libraries = existing_user.get("libraries", {})
+    for lib in update_data.libraries:
+        if lib not in existing_libraries:  # Only fetch version if new
+            response = requests.get(PYPI_URL.format(lib))
+            if response.status_code == 200:
+                latest_version = response.json()["info"]["version"]
+                existing_libraries[lib] = latest_version  # Add new library with version
+    # Update database with the merged libraries
     await users_collection.update_one(
         {"email": email},
-        {"$set": {"libraries": lib_versions}}
+        {"$set": {"libraries": existing_libraries}}
     )
-    return {"message": "Libraries updated successfully", "libraries": lib_versions}
+    return {"message": "Libraries updated successfully", "libraries": existing_libraries}
+
+# Get User Information (Including Libraries)
+@app.get("/users/{email}")
+async def get_user(email: str):
+    user = await users_collection.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Convert MongoDB ObjectId to string for JSON response
+    user["_id"] = str(user["_id"])
+    return user
+
+# Get list of unique libraries and check 
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
 
 
-# @app.put("/users/{email}/libraries/")
+# def register_user(user: UserCreate):
+#     users = {}
+#     if user.email not in users:
+#         users[UserCreate.email].append(user)
+#         #users[UserCreate.email] = [user]
+#     else:
+#         print(f"User {users.email} already exists.")
+
+# @app.post("/subscribe/")
+# async def raw_libraries(email, libraries: List[str]):
+#     for email in user_data.email:
+
+#     libraries = input_data.libraries.split(',')
+
+# # MongoDB connection (Example)
+# client = MongoClient("mongodb://localhost:27017")
+# db = client.mydatabase
+# users_collection = db.users
+
+# user_data = {
+    #     "name" = input_data.name,
+    #     "password" = hashed_password,
+    #     "email" = input_data.email,
+    #     "libraries" = input_data.libraries,
+    # }
+
+    # @app.put("/users/{email}/libraries/")
 # async def update_libraries(email: str, update_data: UpdateLibraries):
 #     existing_user = await users_collection.find_one({"email": email})
 #     if not existing_user:
@@ -104,39 +138,5 @@ async def update_libraries(email: str, update_data: UpdateLibraries):
     
     
     # Get the version of python libraries before uploading to database
-    for library in new_libraries:
-        library = new_libraries.split(',')
-
-# Get User Information (Including Libraries)
-@app.get("/users/{email}")
-async def get_user(email: str):
-    user = await users_collection.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Convert MongoDB ObjectId to string for JSON response
-    user["_id"] = str(user["_id"])
-    return user
-
-# if __name__ == '__main__':
-#     app.run(debug=True)
-
-
-# def register_user(user: UserCreate):
-#     users = {}
-#     if user.email not in users:
-#         users[UserCreate.email].append(user)
-#         #users[UserCreate.email] = [user]
-#     else:
-#         print(f"User {users.email} already exists.")
-
-# @app.post("/subscribe/")
-# async def raw_libraries(email, libraries: List[str]):
-#     for email in user_data.email:
-
-#     libraries = input_data.libraries.split(',')
-
-# # MongoDB connection (Example)
-# client = MongoClient("mongodb://localhost:27017")
-# db = client.mydatabase
-# users_collection = db.users
+    # for library in new_libraries:
+    #     library = new_libraries.split(',')

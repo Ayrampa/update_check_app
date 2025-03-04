@@ -6,8 +6,8 @@ pip install fastapi uvicorn pymongo motor bcrypt python-dotenv requests email-va
 
 curl -X POST "http://localhost:8000/subscribe/" -H "Content-Type: application/json" -d '{
   "email": "user@example.com",
-  "libraries": ["fastapi", "pydantic"]
-}'
+  "password": "pass1"
+  }'
 
 
 curl -X PUT "http://localhost:8000/user/user@example.com/add/" -H "Content-Type: application/json" -d '["numpy", "requests"]'
