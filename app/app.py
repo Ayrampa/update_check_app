@@ -49,6 +49,7 @@ async def register_user(input_data: UserCreate):
     await users_collection.insert_one(user_data)
     return {"message": "User added successfully"}
 # Add/Update Python Libraries for a User
+
 @app.put("/users/{email}/libraries/")
 async def update_libraries(email: str, update_data: UpdateLibraries):
     existing_user = await users_collection.find_one({"email": email})
@@ -80,31 +81,7 @@ async def update_libraries(email: str, update_data: UpdateLibraries):
         "invalid_libraries": invalid_libraries
     }
     
-    
-    
-    
-    
-    
-    
-    # invalid_libraries = []
-    # for lib in update_data.libraries:
-    #     if lib not in existing_libraries:  # Only fetch version if new
-    #         response = requests.get(PYPI_URL.format(lib))
-    #         if response.status_code == 200:
-    #             latest_version = response.json()["info"]["version"]
-    #             existing_libraries[lib] = latest_version  # Add new library with version
-    #         else:
-    #             invalid_libraries.append(lib)
-    #             #print(f'{"message": "The library {invalid_libraries[lib]} does not exist."}')
-
-    # # Update database with the merged libraries
-    # await users_collection.update_one(
-    #     {"email": email},
-    #     {"$set": {"libraries": existing_libraries}}
-    # )
-    # return {"message": "Libraries updated successfully", "libraries": existing_libraries}
-
-# Get User Information (Including Libraries)
+    # Get User Information (Including Libraries)
 @app.get("/users/{email}")
 async def get_user(email: str):
     user = await users_collection.find_one({"email": email})
@@ -115,63 +92,67 @@ async def get_user(email: str):
     return user
 
 
+############################################################################################
+# # Celery part
+# from celery import Celery
 
-# Get list of unique libraries and check 
+# REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
+# celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
+# celery.conf.beat_schedule = {}
+# celery.conf.timezone = "UTC"
 
-
-# def register_user(user: UserCreate):
-#     users = {}
-#     if user.email not in users:
-#         users[UserCreate.email].append(user)
-#         #users[UserCreate.email] = [user]
-#     else:
-#         print(f"User {users.email} already exists.")
-
-# @app.post("/subscribe/")
-# async def raw_libraries(email, libraries: List[str]):
-#     for email in user_data.email:
-
-#     libraries = input_data.libraries.split(',')
-
-# # MongoDB connection (Example)
-# client = MongoClient("mongodb://localhost:27017")
-# db = client.mydatabase
-# users_collection = db.users
-
-# user_data = {
-    #     "name" = input_data.name,
-    #     "password" = hashed_password,
-    #     "email" = input_data.email,
-    #     "libraries" = input_data.libraries,
-    # }
-
-    # @app.put("/users/{email}/libraries/")
-# async def update_libraries(email: str, update_data: UpdateLibraries):
-#     existing_user = await users_collection.find_one({"email": email})
-#     if not existing_user:
-#         raise HTTPException(status_code=404, detail="User not found")
-#     # Merge existing and new libraries (avoid duplicates)
-#     new_libraries = list(set(existing_user.get("libraries", []) + update_data.libraries))
-#     lib_versions = []
-#     for lib in new_libraries:
-#         response = requests.get(PYPI_URL.format(lib))
-#         if response.status_code == 200:
-#             latest_version = response.json()["info"]["version"]
-#             #if latest_version != user.get("installed_versions", {}).get(lib, None):
-#             lib_versions.append(latest_version)
-                #f"{lib}: {latest_version}")
-            
-    # # Update user document in MongoDB
-    # await users_collection.update_one(
-    #     {"email": email},
-    #     {"$set": {"libraries": lib_versions}}
-    # )
-    # return {"message": "Libraries have been updated successfully", "libraries": new_libraries}
+# # Get list of unique libraries from all users
+# @celery.task
+# async def get_users_libraries():
+#     users_cursor = users_collection.find({})  # Get all users
+#     users = await users_cursor.to_list(length=None)  # Convert cursor to list
+#     user_libs = {}  # Dictionary to store {email: {libraries}}
+#     for user in users:
+#         email = user.get("email")
+#         libraries = user.get("libraries", {})  # Get libraries dict, default to empty
+#         user_libs[email] = libraries  # Store user libraries
+#     return user_libs
     
-    
-    # Get the version of python libraries before uploading to database
-    # for library in new_libraries:
-    #     library = new_libraries.split(',')
+# @celery.task
+# async def check_library_updates():
+#     users = await users_collection.find().to_list(None)  # Fetch all users
+#     updates_made = False  # Flag to check if updates happened
+#     for user in users:
+#         email = user.get("email")
+#         libraries = user.get("libraries", {})  # Get stored libraries with versions
+#         installed_versions = user.get("installed_versions", {})  # Get existing installed versions
+#         updates = {}  # Dictionary to store new versions
+#         for lib, version in libraries.items():
+#             response = requests.get(PYPI_URL.format(lib))
+#             if response.status_code == 200:
+#                 latest_version = response.json()["info"]["version"]
+#                 if latest_version != installed_versions.get(lib):  # Compare versions
+#                     updates[lib] = latest_version
+#         if updates:  # If any updates were found
+#             updates_made = True
+#             installed_versions.update(updates)  # Update installed_versions
+#             # Save updated versions to the database
+#             await users_collection.update_one(
+#                 {"email": email},
+#                 {"$set": {"installed_versions": installed_versions}}
+#             )
+
+#     return {"message": "Library updates checked", "updates_made": updates_made}
+
+
+
+
+# @celery.task
+# async def check_library_updates():
+#     users = await users_collection.find().to_list(None)
+#     for user in users:
+#         updates = []
+#         for lib in user["libraries"]:
+#             response = requests.get(PYPI_URL.format(lib))
+#             if response.status_code == 200:
+#                 latest_version = response.json()["info"]["version"]
+#                 if latest_version != user.get("installed_versions", {}).get(lib, None):
+#                     updates.append(f"{lib}: {latest_version}")
+#                     user["installed_versions"] = user.get("installed_versions", {})
+#                     user["installed_versions"][lib] = latest_version    
