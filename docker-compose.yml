@@ -21,6 +21,8 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017
       - DATABASE_NAME=fastapi_db
+    # env_file:
+    #   - .env
     volumes:
       - .:/app
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -35,7 +37,7 @@ services:
     build:
       context: ./celery
       dockerfile: Dockerfile
-    command: ["celery", "-A", "app.celery_worker.celery", "worker"]
+    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
     depends_on:
       - redis
       - fastapi

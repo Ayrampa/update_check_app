@@ -5,7 +5,7 @@ class UserCreate(BaseModel):
     name: str
     password: str
     email: EmailStr
-    libraries: List[str]
-
-# class UserDB(UserCreate):
-#     id: str
+    
+# Pydantic Model for Updating User Libraries
+class UpdateLibraries(BaseModel):
+    libraries: list[str]

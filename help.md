@@ -29,3 +29,5 @@ curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json"
 
 # Get user
 curl -X GET "http://localhost:8000/users/lmb11@example.com" 
+
+pip3 freeze > requirements.txt

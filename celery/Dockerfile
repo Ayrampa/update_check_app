@@ -1,16 +1,8 @@
-FROM python:3.10
-WORKDIR /celery
-COPY . .
-RUN pip install --no-cache-dir -r requirements.txt
-EXPOSE 8000
-CMD ["uvicorn", "main:clelery", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-
 # Use an official Python runtime as base
 FROM python:3.10
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /celery
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
