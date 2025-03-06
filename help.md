@@ -1,7 +1,7 @@
 # Acces mongodb
 docker compose exec mongo mongosh
 show dbs # show list of databases
-use mydatabase
+use fastapi_db
 show collections
 db.users.find().pretty()
 exit
@@ -28,7 +28,7 @@ curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json"
            }'
 
 # Get user
-curl -X GET "http://localhost:8000/users/lmb11@example.com" 
+curl -X GET "http://localhost:8000/users/maria.parfenchyk@gmail.com" 
 
 pip3 freeze > requirements.txt
 
