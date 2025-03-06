@@ -9,9 +9,11 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    networks:
+      - app-network
 
   fastapi_app:
-    build: .
+    build: ./app
     container_name: fastapi_app
     restart: always
     depends_on:
@@ -24,14 +26,18 @@ services:
     # env_file:
     #   - .env
     volumes:
-      - .:/app
+      - ./app:/app
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - app-network
 
   redis:
     image: redis
     container_name: redis
     ports:
       - "6379:6379"
+    networks:
+      - app-network
 
   celery:
     build:
@@ -40,19 +46,20 @@ services:
     command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
     depends_on:
       - redis
-      - fastapi
+      - fastapi_app
     networks:
       - app-network
 
   celery-beat:
-    build: .
-    command: ["celery", "-A", "app.celery_worker.celery", "beat", "--scheduler", "celery.beat.schedulers:PersistentScheduler", "--loglevel=info"]
+    build: ./celery
+    command: ["celery", "-A", "tasks", "beat", "--scheduler", "celery.beat.schedulers:PersistentScheduler", "--loglevel=info"]
     depends_on:
       - redis
-
+    networks:
+      - app-network
 volumes:
   mongo_data:
 
-  networks:
+networks:
   app-network:
     driver: bridge

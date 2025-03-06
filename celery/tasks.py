@@ -1,16 +1,21 @@
 import os
 import requests
 from celery import Celery
-from app import users_collection
 import smtplib
 from email.message import EmailMessage
 from celery.schedules import crontab
+from motor.motor_asyncio import AsyncIOMotorClient
+#from config import MONGO_URI, DATABASE_NAME
 
+DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
 celery.conf.timezone = "UTC"
+client = AsyncIOMotorClient(MONGO_URI)
+database = client[DATABASE_NAME]
+users_collection = database["users"]
 
 # # Initialize Celery
 # celery = Celery(
