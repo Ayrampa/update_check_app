@@ -15,5 +15,7 @@ COPY . .
 ENV REDIS_BROKER=redis://redis:6379/0
 ENV MONGO_URI=mongodb://mongodb:27017/your_database_name
 
-# Start Celery worker
+
 CMD ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+# Run Celery worker and beat in a single container
+#CMD ["bash", "-c", "celery -A tasks worker --loglevel=info & celery -A tasks beat --scheduler celery.beat.schedulers.PersistentScheduler --loglevel=info"]

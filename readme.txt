@@ -1,4 +1,12 @@
-pip install fastapi uvicorn pymongo motor aiohttp celery redis smtplib python-dotenv
+pip install fastapi uvicorn pymongo motor aiohttp celery redis smtplib python-dotenv celery-beat
+
+fastapi
+uvicorn
+celery
+redis
+requests
+celery-beat
+
 
 pip install fastapi uvicorn pymongo motor bcrypt python-dotenv requests email-validator
 

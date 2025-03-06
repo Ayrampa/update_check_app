@@ -76,3 +76,4 @@ async def get_user(email: str):
         raise HTTPException(status_code=404, detail="User not found")
     user["_id"] = str(user["_id"])
     return user
+

@@ -31,3 +31,22 @@ curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json"
 curl -X GET "http://localhost:8000/users/lmb11@example.com" 
 
 pip3 freeze > requirements.txt
+
+# Add myself
+curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json" -d '{
+           "name": "Mary",
+           "password": "securepassword10",
+           "email": "maria.parfenchyk@gmail.com"
+           }'
+
+
+curl -X PUT "http://localhost:8000/users/maria.parfenchyk@gmail.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas"]}'
+
+db.users.updateOne(
+    { "email": "maria.parfenchyk@gmail.com" },  
+    { "$set": { "libraries.motor": "3.8.0", "libraries.pandas": "2.2.2" } } 
+) 
+
+docker exec -it update_check_app_celery-beat_1 sh
+celery -A tasks beat --scheduler celery.beat.schedulers.PersistentScheduler --loglevel=info
+

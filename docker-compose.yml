@@ -51,12 +51,16 @@ services:
       - app-network
 
   celery-beat:
-    build: ./celery
-    command: ["celery", "-A", "tasks", "beat", "--scheduler", "celery.beat.schedulers:PersistentScheduler", "--loglevel=info"]
+    build: 
+      context: ./celery
+      dockerfile: Dockerfile
+    command: ["celery", "-A", "tasks", "beat", "--scheduler", "celery.beat.schedulers.PersistentScheduler", "--loglevel=info"]
     depends_on:
       - redis
+      - celery
     networks:
       - app-network
+
 volumes:
   mongo_data:
 

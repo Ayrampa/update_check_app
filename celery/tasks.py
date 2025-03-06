@@ -5,7 +5,6 @@ import smtplib
 from email.message import EmailMessage
 from celery.schedules import crontab
 from motor.motor_asyncio import AsyncIOMotorClient
-#from config import MONGO_URI, DATABASE_NAME
 
 DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
@@ -16,13 +15,6 @@ celery.conf.timezone = "UTC"
 client = AsyncIOMotorClient(MONGO_URI)
 database = client[DATABASE_NAME]
 users_collection = database["users"]
-
-# # Initialize Celery
-# celery = Celery(
-#     "worker",
-#     broker="redis://redis:6379/0",
-#     backend="redis://redis:6379/0"
-# )
 
 @celery.task
 async def check_library_updates():
@@ -85,7 +77,7 @@ def send_email(email, updates):
 celery.conf.beat_schedule = {
     "check-library-updates": {
         "task": "tasks.check_library_updates",
-        "schedule": crontab(minute="*/15")
+        "schedule": crontab(minute="*/5")
     }
 }
 
