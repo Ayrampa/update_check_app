@@ -23,8 +23,6 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017
       - DATABASE_NAME=fastapi_db
-    # env_file:
-    #   - .env
     volumes:
       - ./app:/app
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -39,27 +37,29 @@ services:
     networks:
       - app-network
 
-  celery:
+  celery_worker:
     build:
       context: ./celery
       dockerfile: Dockerfile
-    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+    container_name: celery_worker
     depends_on:
       - redis
-      - fastapi_app
+      - mongo
     networks:
       - app-network
+    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
 
-  celery-beat:
-    build: 
+  celery_beat:
+    build:
       context: ./celery
       dockerfile: Dockerfile
-    command: ["celery", "-A", "tasks", "beat", "--scheduler", "celery.beat.schedulers.PersistentScheduler", "--loglevel=info"]
+    container_name: celery_beat
     depends_on:
       - redis
-      - celery
+      - mongo
     networks:
       - app-network
+    command: ["celery", "-A", "tasks", "beat", "-l", "info"]
 
 volumes:
   mongo_data:
