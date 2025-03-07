@@ -1,52 +1,61 @@
-# Acces mongodb
-docker compose exec mongo mongosh
-show dbs 
+# Library updates check
+In this project we can check the version of Python libraries, and send notification automatically if there are any updates to registered users by email.
+This project is built with the use of python, celery, reddis, beat, fastapi, mongodb.
+
+## Build Docker containers
+```bash
+docker-compose up --build
+```
+
+## Access mongodb and interaction with it
+```bash
+# access db to see and choose databas, and see users in it
+docker compose exec mongo mongosh 
+```
+The following are the MongoDB query language commands that should be run after we entered the mongo.
+```
+show dbs
+```
+```
 use fastapi_db
+```
+```
 show collections
+```
+```
 db.users.find().pretty()
+```
+```
 exit
+```
 
-
-
-# Directly query MongoDB from outside the container
-docker compose exec mongo mongosh mydatabase --eval "db.users.find().pretty()"
-
-
-http://localhost:8000/users/?name=Ann&email=ann@example.com&libraries=pandas&libraries=numpy
-
-
-
-# Add libraries
-curl -X PUT "http://localhost:8000/users/lmb11@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas", "seaborned", "celery"]}'
-
-
-# Add user
+## Add user
+```bash
 curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json" -d '{
-           "name": "Lmb11",
-           "password": "securepassword9",
-           "email": "lmb11@example.com"
+           "name": "UserName",
+           "password": "securepassword",
+           "email": "user@example.com"
            }'
+```
 
-# Get user
-curl -X GET "http://localhost:8000/users/maria.parfenchyk@gmail.com" 
+## Add libraries
+```bash
+curl -X PUT "http://localhost:8000/users/user@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas"]}'
+```
 
-pip3 freeze > requirements.txt
+## Get user
+```bash
+curl -X GET "http://localhost:8000/users/user@example.com" 
+```
 
-# Add myself
-curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json" -d '{
-           "name": "Mary",
-           "password": "securepassword10",
-           "email": "maria.parfenchyk@gmail.com"
-           }'
-
-
-curl -X PUT "http://localhost:8000/users/maria.parfenchyk@gmail.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas"]}'
-
+## Change versions of python libraries via database
+```bash
 db.users.updateOne(
-    { "email": "maria.parfenchyk@gmail.com" },  
-    { "$set": { "libraries.motor": "3.8.0", "libraries.pandas": "2.2.2" } } 
+    { "email": "user@example.com" },  
+    { "$set": { "libraries.motor": "3.8.0", "libraries.pandas": "2.2.2"
+    } 
+    } 
 ) 
+```
 
-docker exec -it update_check_app_celery-beat_1 sh
-celery -A tasks beat --scheduler celery.beat.schedulers.PersistentScheduler --loglevel=info
 
