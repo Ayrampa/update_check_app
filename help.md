@@ -1,6 +1,6 @@
 # Acces mongodb
 docker compose exec mongo mongosh
-show dbs # show list of databases
+show dbs 
 use fastapi_db
 show collections
 db.users.find().pretty()
