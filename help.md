@@ -50,6 +50,7 @@ curl -X GET "http://localhost:8000/users/user@example.com"
 
 ## Change versions of python libraries via database
 ```bash
+# This code should be run inside the database
 db.users.updateOne(
     { "email": "user@example.com" },  
     { "$set": { "libraries.motor": "3.8.0", "libraries.pandas": "2.2.2"
