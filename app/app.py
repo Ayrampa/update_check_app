@@ -4,23 +4,6 @@ import requests
 from models import UserCreate, UpdateLibraries
 from database import users_collection
 
-# load_dotenv()
-
-# MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017")
-# DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
-# client = AsyncIOMotorClient(MONGO_URI)
-# database = client[DATABASE_NAME]
-# users_collection = database["users"]
-
-# class UserCreate(BaseModel):
-#     name: str
-#     password: str
-#     email: EmailStr
-    
-# # Pydantic Model for Updating User Libraries
-# class UpdateLibraries(BaseModel):
-#     libraries: list[str]
-
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -28,18 +11,32 @@ PYPI_URL = "https://pypi.org/pypi/{}/json"
 
 @app.post("/submit/")
 async def register_user(input_data: UserCreate):
+    ''' 
+    Register user to DB.
+    :param input_data: user name, email and password. list of libraries is optional
+    :type input_data: class UserCreate
+    :returns: notification for user
+    :rtype: dict
+    '''
     existing_user = await users_collection.find_one({"email": input_data.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
-    # Hash the password and add new user to dictionary in database
     hashed_password = pwd_context.hash(input_data.password)
     user_data = {"name": input_data.name, "password": hashed_password, "email": input_data.email, "libraries": {}}
     await users_collection.insert_one(user_data)
     return {"message": "User added successfully"}
-# Add/Update Python Libraries for a User
 
 @app.put("/users/{email}/libraries/")
 async def update_libraries(email: str, update_data: UpdateLibraries):
+    ''' 
+    Adds python libraries with the current versions for the registered user to DB.
+    :param email: user email 
+    :param update_data: list of python libraries from user
+    :type email: str
+    :type update_data: class UpdateLibraries
+    :returns: notification for user
+    :rtype: dict
+    '''
     existing_user = await users_collection.find_one({"email": email})
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -55,8 +52,7 @@ async def update_libraries(email: str, update_data: UpdateLibraries):
             else:
                 invalid_libraries.append(lib)  
 
-    existing_libraries.update(valid_libraries)
-    # Update only if there are new valid libraries
+    existing_libraries.update(valid_libraries)    
     if valid_libraries:
         await users_collection.update_one(
             {"email": email},
