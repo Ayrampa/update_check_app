@@ -2,18 +2,20 @@ import os
 import requests
 from asgiref.sync import async_to_sync
 from celery import Celery
-import smtplib
+#import smtplib
 from email.message import EmailMessage
 from celery.schedules import crontab
 from motor.motor_asyncio import AsyncIOMotorClient
 
-DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+
+# DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
+# MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
 
 celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
 celery.conf.timezone = "UTC"
+
 
 @celery.task
 def check_library_updates():
@@ -56,6 +58,8 @@ def check_library_updates():
         print(f"\nFinal result: Updates made? {updates_made}")
         return {"message": "Library updates checked", "updates_made": updates_made}
     return async_to_sync(async_task)()
+
+# Use Redis to send emails
 
 
 def send_email(email, updates):
