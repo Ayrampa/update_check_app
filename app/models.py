@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from typing import List
 
 class UserCreate(BaseModel):
     name: str
@@ -8,3 +9,6 @@ class UserCreate(BaseModel):
 # Pydantic Model for Updating User Libraries
 class UpdateLibraries(BaseModel):
     libraries: list[str]
+
+class EmailSchema(BaseModel):
+    email: List[EmailStr]

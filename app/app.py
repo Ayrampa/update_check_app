@@ -1,8 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from passlib.context import CryptContext
 import requests
-from models import UserCreate, UpdateLibraries
+from models import UserCreate, UpdateLibraries, EmailSchema
 from database import users_collection
+
+# Import modules to send emails from FastApi
+from fastapi_mail import FastMail, MessageSchema
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 app = FastAPI()
 
@@ -73,3 +78,10 @@ async def get_user(email: str):
     user["_id"] = str(user["_id"])
     return user
 
+
+
+# @app.post("/send_mail")
+# async def send_email(email: EmailSchema):
+#     fm = FastMail(conf)
+#     await fm.send_message(message)
+#     print(message)

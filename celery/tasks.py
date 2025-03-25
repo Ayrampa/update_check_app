@@ -1,95 +1,110 @@
-import os
+from celery import Celery, shared_task, chain, signature
+from database import users_collection
 import requests
-from asgiref.sync import async_to_sync
-from celery import Celery
-#import smtplib
-from email.message import EmailMessage
 from celery.schedules import crontab
-from motor.motor_asyncio import AsyncIOMotorClient
+import os
+from config import conf
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
-
-# DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
-PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
-# MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
-
-celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
+celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER, celery_app = current_celery_app)
 celery.conf.timezone = "UTC"
 
+@shared_task
+async def get_libraries_set():
+    users = users_collection.find().to_list(None)
+    current_libraries = set()
+    for user in users:
+        libraries = user.get("libraries", []) 
+        current_libraries.update(libraries)
+    return list(current_libraries)
 
-@celery.task
-def check_library_updates():
-    '''
-    Function that makes async function behaves as sync function that is necessary for celery
-    '''    
-    client = AsyncIOMotorClient("mongodb://mongo:27017")
-    db = client["fastapi_db"]
-    users_collection = db["users"]
-    async def async_task():
-        users = await users_collection.find().to_list(None)
-        updates_made = False
-        print(f"Total users found: {len(users)}")
-        for user in users:
-            email = user.get("email")
-            libraries = user.get("libraries", {}) 
-            print(f"DEBUG: libraries = {libraries} (Type: {type(libraries)})") 
-            print(f"\nChecking updates for user: {email}")
-            print(f"Stored libraries: {libraries}")        
-            updates = {}
-            for lib, installed_version in libraries.items():
-                print(f"\nChecking {lib} (installed: {installed_version})")
-                response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
-                if response.status_code == 200:
-                    latest_version = response.json()["info"]["version"]
-                    print(f"Latest version of {lib}: {latest_version}")
-                    if latest_version != installed_version:
-                        print(f"UPDATE FOUND: {lib} -> {latest_version}")
-                        updates[lib] = latest_version
-                else:
-                    print(f"Failed to fetch {lib} from PyPI (status: {response.status_code})")
-            if updates:
-                updates_made = True               
-                print(f"Updating database for user {email}: {updates}")
-                await users_collection.update_one(
-                    {"email": email},                   
-                    {"$set": {"libraries": {**libraries, **updates}}}
-                )
-                send_email(email, updates)
-        print(f"\nFinal result: Updates made? {updates_made}")
-        return {"message": "Library updates checked", "updates_made": updates_made}
-    return async_to_sync(async_task)()
+@shared_task
+def get_libraries_versions(current_libraries):
+    libraries_versions = {}
+    for lib in current_libraries:
+        response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+        if response.status_code == 200:
+            current_version = response.json()["info"]["version"]
+            libraries_versions[lib] = current_version
+    return libraries_versions
 
-# Use Redis to send emails
-
-
-def send_email(email, updates):
-    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", 587))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASSWORD")    
-    subject = "Library Updates Available"
-    body = "The following libraries have updates available:\n\n"
+@shared_task
+def check_library_updates(libraries_versions):
+    users = users_collection.find().to_list(None)
+    updates_by_user = {}
+    for user in users:
+        email = user.get("email")
+    updates = {}
+    for lib, installed_version in libraries_versions.items():
+        response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+        if response.status_code == 200:
+            latest_version = response.json()["info"]["version"]
+            #print(f"Latest version of {lib}: {latest_version}")
+            if latest_version != installed_version:
+                print(f"UPDATE FOUND: {lib} -> {latest_version}")
+                updates[lib] = latest_version
+        else:
+            print(f"Failed to fetch {lib} from PyPI (status: {response.status_code})")
+        if updates:
+            #updates_made = True               
+            print(f"Updating database for user {email}: {updates}")
+            users_collection.update_one(
+                {"email": email},                   
+                {"$set": {"libraries": {**libraries_versions, **updates}}}
+            )
+        updates_by_user[email] = updates
+    return updates_by_user
     
-    for lib, version in updates.items():
-        body += f"- {lib}: {version}\n"    
-    body += "\nPlease update your libraries accordingly."    
-    msg = EmailMessage()
-    msg.set_content(body)
-    msg["Subject"] = subject
-    msg["From"] = smtp_user
-    msg["To"] = email    
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-        print(f"Email sent to {email}")
-    except Exception as e:
-        print(f"Failed to send email to {email}: {e}")
+# Configure FastAPI-Mail connection
+# conf = ConnectionConfig(
+#     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+#     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+#     MAIL_PORT=587,
+#     MAIL_SERVER="smtp.gmail.com",
+#     MAIL_FROM=os.getenv("MAIL_FROM", "noreply@example.com"),
+#     MAIL_TLS=True,
+#     MAIL_SSL=False
+# )
+
+@shared_task
+async def send_email_task(updates_by_user):
+    """
+    Send an email to users if updates were found.
+    """
+    fastmail = FastMail(conf)  # Create FastMail instance
+
+    for email, updates in updates_by_user.items():
+        subject = "Library Updates Available"
+        message_body = "The following libraries have updates:\n\n"
+        message_body += "\n".join([f"{lib}: {version}" for lib, version in updates.items()])
+
+        message = MessageSchema(
+            subject=subject,
+            recipients=[email],
+            body=message_body,
+            subtype="plain"
+        )
+        await fastmail.send_message(message)  # Await sending the email
+
+    return "Emails sent successfully!"
+
+@shared_task
+def celery_workflow():
+    """
+    Execute multiply tasks to get the versions of python libraries, check for updates and send emails to the user vith relevant information.
+    """
+    workflow = chain(
+        get_libraries_set.s(users_collection),  
+        get_libraries_versions.s(),
+        check_library_updates.s(),  
+        send_email_task.s()
+    )
+    return workflow()
 
 celery.conf.beat_schedule = {
     "check-library-updates": {
-        "task": "tasks.check_library_updates",
+        "task": "tasks.celery_workflow",
         "schedule": crontab(minute="*/3")
     }
 }
