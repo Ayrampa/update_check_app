@@ -6,8 +6,13 @@ import os
 from config import conf
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
+DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
-celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER, celery_app = current_celery_app)
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
+
+REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
+celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
 celery.conf.timezone = "UTC"
 
 @shared_task
