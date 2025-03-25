@@ -1,10 +1,10 @@
 from celery import Celery, shared_task, chain, signature
-from database import users_collection
 import requests
 from celery.schedules import crontab
 import os
 from config import conf
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from fastapi_mail import FastMail, MessageSchema
+from motor.motor_asyncio import AsyncIOMotorClient
 
 DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
@@ -16,7 +16,10 @@ celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
 celery.conf.timezone = "UTC"
 
 @shared_task
-async def get_libraries_set():
+def get_libraries_set():
+    client = AsyncIOMotorClient("mongodb://mongo:27017")
+    db = client["fastapi_db"]
+    users_collection = db["users"]
     users = users_collection.find().to_list(None)
     current_libraries = set()
     for user in users:
@@ -36,6 +39,9 @@ def get_libraries_versions(current_libraries):
 
 @shared_task
 def check_library_updates(libraries_versions):
+    client = AsyncIOMotorClient("mongodb://mongo:27017")
+    db = client["fastapi_db"]
+    users_collection = db["users"]
     users = users_collection.find().to_list(None)
     updates_by_user = {}
     for user in users:
@@ -73,7 +79,7 @@ def check_library_updates(libraries_versions):
 # )
 
 @shared_task
-async def send_email_task(updates_by_user):
+def send_email_task(updates_by_user):
     """
     Send an email to users if updates were found.
     """
@@ -90,7 +96,7 @@ async def send_email_task(updates_by_user):
             body=message_body,
             subtype="plain"
         )
-        await fastmail.send_message(message)  # Await sending the email
+        fastmail.send_message(message)  # Await sending the email
 
     return "Emails sent successfully!"
 
