@@ -58,5 +58,10 @@ db.users.updateOne(
     } 
 ) 
 ```
-
+<!-- db.users.updateOne(
+    { "email": "maria.parfenchyk@gmail.com" },  
+    { "$set": { "libraries.seaborn": "0.13.0", "libraries.pandas": "2.2.2"
+    } 
+    } 
+) -->
 
