@@ -8,14 +8,14 @@ from pymongo import MongoClient
 import smtplib
 from email.message import EmailMessage
 
-DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+#DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
 
 #MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
+#MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
 
-client = MongoClient("mongodb://mongo:27017")
+client = MongoClient("mongodb://localhost:27017")
 database = client["fastapi_db"]
 users_collection = database["users"]
 
@@ -25,34 +25,34 @@ celery.conf.timezone = "UTC"
 @shared_task
 def get_libraries_set():
     users = list(users_collection.find({})) 
-    #print(users)
-    current_libraries = set()
+    print(users)
+    current_libraries = {}
     for user in users:
-        libraries = user.get("libraries", []) 
-        current_libraries.update(libraries)
-        #print(current_libraries)
-    return list(current_libraries)
+        libraries = user.get("libraries", {}) 
+        current_libraries[user].update(libraries)
+        print(current_libraries)
+    return current_libraries
+
+# @shared_task
+# def get_libraries_versions(current_libraries):
+#     libraries_versions = {}
+#     for lib in current_libraries:
+#         response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+#         if response.status_code == 200:
+#             current_version = response.json()["info"]["version"]
+#             libraries_versions[lib] = current_version
+#             print(libraries_versions)
+#     return libraries_versions
 
 @shared_task
-def get_libraries_versions(current_libraries):
-    libraries_versions = {}
-    for lib in current_libraries:
-        response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
-        if response.status_code == 200:
-            current_version = response.json()["info"]["version"]
-            libraries_versions[lib] = current_version
-            #print(libraries_versions)
-    return libraries_versions
-
-@shared_task
-def check_library_updates(libraries_versions):
+def check_library_updates(current_libraries):
     users = list(users_collection.find({})) 
     updates_made = False
     updates_by_user = {}
     for user in users:
         email = user.get("email")
         updates = {}
-        for lib, installed_version in libraries_versions.items():
+        for lib, installed_version in current_libraries.items():
             response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
             if response.status_code == 200:
                 latest_version = response.json()["info"]["version"]
@@ -68,7 +68,7 @@ def check_library_updates(libraries_versions):
             print(f"Updating database for user {email}: {updates}")
             users_collection.update_one(
                 {"email": email},                   
-                {"$set": {"libraries": {**libraries_versions, **updates}}}
+                {"$set": {"libraries": {**current_libraries, **updates}}}
             )
         updates_by_user[email] = updates
     return updates_by_user
@@ -106,7 +106,7 @@ def celery_workflow():
     """
     workflow = chain(
         get_libraries_set.s(),  
-        get_libraries_versions.s(),
+        #get_libraries_versions.s(),
         check_library_updates.s(),  
         send_email_task.s()
     )
@@ -120,11 +120,11 @@ celery.conf.beat_schedule = {
 }
 
 if __name__ == "__main__":
-    celery.start()
+    #celery.start()
 
 # if __name__ == "__main__":
-#     get_libraries_set()
-#     get_libraries_versions(current_libraries)
+    get_libraries_set()
+    # check_library_updates(get_libraries_set())
 
 # Configure FastAPI-Mail connection
 # conf = ConnectionConfig(
@@ -168,3 +168,25 @@ if __name__ == "__main__":
 #         fastmail.send_message(message)  # Await sending the email
 
 #     return "Emails sent successfully!"
+
+# @shared_task
+# def get_libraries_set():
+#     users = list(users_collection.find({})) 
+#     print(users)
+#     current_libraries = set()
+#     for user in users:
+#         libraries = user.get("libraries", []) 
+#         current_libraries.update(libraries)
+#         print(current_libraries)
+#     return list(current_libraries)
+
+# @shared_task
+# def get_libraries_versions(current_libraries):
+#     libraries_versions = {}
+#     for lib in current_libraries:
+#         response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+#         if response.status_code == 200:
+#             current_version = response.json()["info"]["version"]
+#             libraries_versions[lib] = current_version
+#             print(libraries_versions)
+#     return libraries_versions
