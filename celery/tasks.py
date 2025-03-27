@@ -26,12 +26,13 @@ celery.conf.timezone = "UTC"
 def get_libraries_set():
     users = list(users_collection.find({})) 
     print(users)
-    current_libraries = {}
+    current_user_libraries = {}
     for user in users:
+        email = user.get("email")
         libraries = user.get("libraries", {}) 
-        current_libraries[user].update(libraries)
-        print(current_libraries)
-    return current_libraries
+        current_user_libraries[email] = libraries
+        print(current_user_libraries)
+    return current_user_libraries
 
 # @shared_task
 # def get_libraries_versions(current_libraries):
@@ -45,14 +46,15 @@ def get_libraries_set():
 #     return libraries_versions
 
 @shared_task
-def check_library_updates(current_libraries):
-    users = list(users_collection.find({})) 
+def check_library_updates(current_user_libraries):
+    #users = list(users_collection.find({})) 
     updates_made = False
     updates_by_user = {}
-    for user in users:
-        email = user.get("email")
+    for email in current_user_libraries.keys():
+        #email = user.get("email")
+        print(email)
         updates = {}
-        for lib, installed_version in current_libraries.items():
+        for lib, installed_version in current_user_libraries.items():
             response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
             if response.status_code == 200:
                 latest_version = response.json()["info"]["version"]
@@ -123,8 +125,9 @@ if __name__ == "__main__":
     #celery.start()
 
 # if __name__ == "__main__":
-    get_libraries_set()
-    # check_library_updates(get_libraries_set())
+    #get_libraries_set()
+    #check_library_updates(current_libraries)
+    check_library_updates(get_libraries_set())
 
 # Configure FastAPI-Mail connection
 # conf = ConnectionConfig(
