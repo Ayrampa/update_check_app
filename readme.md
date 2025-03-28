@@ -32,31 +32,28 @@ exit
 ## Add user
 ```bash
 curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json" -d '{
-           "name": "UserName",
-           "password": "securepassword",
-           "email": "user@example.com"
+           "name": "User3Name",
+           "password": "securepassword3",
+           "email": "use3@example.com"
            }'
 ```
 
 ## Add libraries
 ```bash
-curl -X PUT "http://localhost:8000/users/user@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["motor", "pandas"]}'
+curl -X PUT "http://localhost:8000/users/user@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": {["keras", "numpy"]}}'
 ```
 
 ## Get user
 ```bash
-curl -X GET "http://localhost:8000/users/user@example.com" 
+curl -X GET "http://localhost:8000/users/user2@example.com" 
 ```
 
 ## Change versions of python libraries via database
 ```bash
 # This code should be run inside the database
 db.users.updateOne(
-    { "email": "user@example.com" },  
-    { "$set": { "libraries.motor": "3.8.0", "libraries.pandas": "2.2.2"
-    } 
-    } 
-) 
+    { "email": "use3@example.com" },  
+    {"$set": {"libraries":  { "keras": "3.8.0", "numpy": "2.2.2"}}}) 
 ```
 <!-- db.users.updateOne(
     { "email": "maria.parfenchyk@gmail.com" },  

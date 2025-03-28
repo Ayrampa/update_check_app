@@ -8,14 +8,12 @@ from pymongo import MongoClient
 import smtplib
 from email.message import EmailMessage
 
-#DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
 
-#MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-#MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
 
-client = MongoClient("mongodb://localhost:27017")
+client = MongoClient("mongodb://mongo:27017")
 database = client["fastapi_db"]
 users_collection = database["users"]
 
@@ -34,47 +32,29 @@ def get_libraries_set():
         print(current_user_libraries)
     return current_user_libraries
 
-# @shared_task
-# def get_libraries_versions(current_libraries):
-#     libraries_versions = {}
-#     for lib in current_libraries:
-#         response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
-#         if response.status_code == 200:
-#             current_version = response.json()["info"]["version"]
-#             libraries_versions[lib] = current_version
-#             print(libraries_versions)
-#     return libraries_versions
-
 @shared_task
 def check_library_updates(current_user_libraries):
-    #users = list(users_collection.find({})) 
     updates_made = False
     updates_by_user = {}
-    for email in current_user_libraries.keys():
-        #email = user.get("email")
-        print(email)
-        updates = {}
-        for lib, installed_version in current_user_libraries.items():
-            response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+    for email, libraries in current_user_libraries.items():
+        updates_by_user[email] = {}
+        for lib, installed_version in libraries.items():
+            response = requests.get(f"https://pypi.org/pypi/{lib}/json")
             if response.status_code == 200:
                 latest_version = response.json()["info"]["version"]
-                print(f"Latest version of {lib}: {latest_version}")
-                print(f"But installed version of {lib}: {installed_version}")
                 if latest_version != installed_version:
+                    updates_by_user[email][lib] = latest_version
                     print(f"UPDATE FOUND: {lib} -> {latest_version}")
-                    updates[lib] = latest_version
-            else:
-                print(f"Failed to fetch {lib} from PyPI (status: {response.status_code})")
-        if updates:
-            updates_made = True               
-            print(f"Updating database for user {email}: {updates}")
+                    updates_made = True
+
+        # Update database only if there are changes
+        if updates_by_user[email]:
             users_collection.update_one(
-                {"email": email},                   
-                {"$set": {"libraries": {**current_libraries, **updates}}}
+                {"email": email},
+                {"$set": {"libraries": {**libraries, **updates_by_user[email]}}}
             )
-        updates_by_user[email] = updates
     return updates_by_user
-    
+
 @shared_task
 def send_email_task(updates_by_user):
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
@@ -122,12 +102,61 @@ celery.conf.beat_schedule = {
 }
 
 if __name__ == "__main__":
-    #celery.start()
+    celery.start()
+
+
+#DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+#MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+#MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/fastapi_db")
+
+
+# @shared_task
+# def get_libraries_versions(current_libraries):
+#     libraries_versions = {}
+#     for lib in current_libraries:
+#         response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+#         if response.status_code == 200:
+#             current_version = response.json()["info"]["version"]
+#             libraries_versions[lib] = current_version
+#             print(libraries_versions)
+#     return libraries_versions
+# 
+#  def check_library_updates(current_user_libraries):
+#     #users = list(users_collection.find({})) 
+#     updates_made = False
+#     updates_by_user = {}
+#     for user in current_user_libraries.items():
+#         email = user.get("email")
+#         libraries = user.get("libraries", {}) 
+#         print(email)
+#         updates = {}
+#         for lib, installed_version in current_user_libraries.items():
+#             response = requests.get(f"https://pypi.org/pypi/{lib}/json")                
+#             if response.status_code == 200:
+#                 latest_version = response.json()["info"]["version"]
+#                 print(f"Latest version of {lib}: {latest_version}")
+#                 print(f"But installed version of {lib}: {installed_version}")
+#                 if latest_version != installed_version:
+#                     print(f"UPDATE FOUND: {lib} -> {latest_version}")
+#                     updates[lib] = latest_version
+#             else:
+#                 print(f"Failed to fetch {lib} from PyPI (status: {response.status_code})")
+#         if updates:
+#             updates_made = True               
+#             print(f"Updating database for user {email}: {updates}")
+#             users_collection.update_one(
+#                 {"email": email},                   
+#                 {"$set": {"libraries": {**current_libraries, **updates}}}
+#             )
+#         updates_by_user[email] = updates
+#     return updates_by_user
+    
+
 
 # if __name__ == "__main__":
     #get_libraries_set()
     #check_library_updates(current_libraries)
-    check_library_updates(get_libraries_set())
+    #check_library_updates(get_libraries_set())
 
 # Configure FastAPI-Mail connection
 # conf = ConnectionConfig(
