@@ -32,15 +32,15 @@ exit
 ## Add user
 ```bash
 curl -X POST "http://localhost:8000/submit/" -H "Content-Type: application/json" -d '{
-           "name": "User3Name",
-           "password": "securepassword3",
-           "email": "use3@example.com"
+           "name": "User4Name",
+           "password": "securepassword4",
+           "email": "user4@example.com"
            }'
 ```
 
 ## Add libraries
 ```bash
-curl -X PUT "http://localhost:8000/users/user@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": {["keras", "numpy"]}}'
+curl -X PUT "http://localhost:8000/users/user4@example.com/libraries/" -H "Content-Type: application/json" -d '{"libraries": ["keras", "numpy"]}'
 ```
 
 ## Get user
@@ -52,7 +52,7 @@ curl -X GET "http://localhost:8000/users/user2@example.com"
 ```bash
 # This code should be run inside the database
 db.users.updateOne(
-    { "email": "use3@example.com" },  
+    { "email": "user4@example.com" },  
     {"$set": {"libraries":  { "keras": "3.8.0", "numpy": "2.2.2"}}}) 
 ```
 <!-- db.users.updateOne(
@@ -61,4 +61,5 @@ db.users.updateOne(
     } 
     } 
 ) -->
+db.users.deleteOne( { email: "user2@example.com" } )
 
