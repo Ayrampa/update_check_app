@@ -69,7 +69,7 @@ async def update_libraries(email: str, update_data: UpdateLibraries):
         "invalid_libraries": invalid_libraries
     }
     
-# Get User Information (Including Libraries)
+# Get User Information
 @app.get("/users/{email}")
 async def get_user(email: str):
     user = await users_collection.find_one({"email": email})
