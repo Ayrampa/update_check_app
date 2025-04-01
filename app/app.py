@@ -1,18 +1,25 @@
 from fastapi import FastAPI, HTTPException
 from passlib.context import CryptContext
 import requests
-from models import UserCreate, UpdateLibraries, EmailSchema
+from models import UserCreate, UpdateLibraries
 from database import users_collection
+from dotenv import load_dotenv
+import os
+from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 
-# Import modules to send emails from FastApi
-from fastapi_mail import FastMail, MessageSchema
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-
+load_dotenv()
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
+
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+client = AsyncIOMotorClient(MONGO_URI)
+database = client[DATABASE_NAME]
+users_collection = database["users"]
+
 
 @app.post("/submit/")
 async def register_user(input_data: UserCreate):
