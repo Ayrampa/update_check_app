@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mongo:
-    image: mongo
+    image: mongo:latest
     container_name: mongodb
     restart: always
     ports:
@@ -68,8 +68,8 @@ services:
       - app-network
     command: ["celery", "-A", "tasks", "beat", "-l", "info"]
 
-# volumes:
-#   mongo_data:
+volumes:
+  mongo_data:
 
 networks:
   app-network:
