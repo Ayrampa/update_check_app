@@ -2,10 +2,9 @@ from fastapi import FastAPI, HTTPException
 from passlib.context import CryptContext
 import requests
 from models import UserCreate, UpdateLibraries
-from database import users_collection
 from dotenv import load_dotenv
 import os
-from pymongo import MongoClient
+#from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
 
 load_dotenv()

@@ -1,16 +1,18 @@
-from celery import Celery, shared_task, chain, signature
+from celery import Celery, shared_task, chain
 import requests
 from celery.schedules import crontab
 import os
 from pymongo import MongoClient
 import smtplib
 from email.message import EmailMessage
+from dotenv import load_dotenv
+import os
 
-
+load_dotenv()
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
-
-
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 client = MongoClient("mongodb://mongo:27017")
 database = client["fastapi_db"]
 users_collection = database["users"]
