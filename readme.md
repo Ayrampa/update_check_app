@@ -55,11 +55,4 @@ db.users.updateOne(
     { "email": "user4@example.com" },  
     {"$set": {"libraries":  { "keras": "3.8.0", "numpy": "2.2.2"}}}) 
 ```
-<!-- db.users.updateOne(
-    { "email": "maria.parfenchyk@gmail.com" },  
-    { "$set": { "libraries.seaborn": "0.13.0", "libraries.numpy": "2.2.2"
-    } 
-    } 
-) -->
-db.users.deleteOne( { email: "user2@example.com" } )
 
