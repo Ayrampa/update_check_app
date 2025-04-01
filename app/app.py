@@ -12,9 +12,9 @@ app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
+MONGO_URI = os.getenv("MONGO_URI")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
 client = AsyncIOMotorClient(MONGO_URI)
 database = client[DATABASE_NAME]
 users_collection = database["users"]

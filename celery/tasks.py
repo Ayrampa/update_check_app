@@ -10,9 +10,10 @@ import os
 
 load_dotenv()
 PYPI_URL = "https://pypi.org/pypi/{}/json"
-REDIS_BROKER = os.getenv("REDIS_BROKER", "redis://redis:6379/0")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "fastapi_db")
+REDIS_BROKER = os.getenv("REDIS_BROKER")
+MONGO_URI = os.getenv("MONGO_URI")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+
 client = MongoClient("mongodb://mongo:27017")
 database = client["fastapi_db"]
 users_collection = database["users"]
