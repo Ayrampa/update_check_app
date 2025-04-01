@@ -6,8 +6,10 @@ from dotenv import load_dotenv
 import os
 #from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
+from pathlib import Path
 
-load_dotenv()
+dotenv_path = Path('/.env')
+load_dotenv(dotenv_path=dotenv_path)
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

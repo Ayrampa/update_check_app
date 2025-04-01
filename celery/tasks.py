@@ -7,15 +7,17 @@ import smtplib
 from email.message import EmailMessage
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv()
+dotenv_path = Path('/.env')
+load_dotenv(dotenv_path=dotenv_path)
 PYPI_URL = "https://pypi.org/pypi/{}/json"
 REDIS_BROKER = os.getenv("REDIS_BROKER")
 MONGO_URI = os.getenv("MONGO_URI")
 DATABASE_NAME = os.getenv("DATABASE_NAME")
 
-client = MongoClient("mongodb://mongo:27017")
-database = client["fastapi_db"]
+client = MongoClient(MONGO_URI)
+database = client[DATABASE_NAME]
 users_collection = database["users"]
 
 celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)

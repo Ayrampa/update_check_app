@@ -45,7 +45,7 @@ curl -X PUT "http://localhost:8000/users/user4@example.com/libraries/" -H "Conte
 
 ## Get user
 ```bash
-curl -X GET "http://localhost:8000/users/user2@example.com" 
+curl -X GET "http://localhost:8000/users/user4@example.com" 
 ```
 
 ## Change versions of python libraries via database
