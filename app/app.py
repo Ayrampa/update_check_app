@@ -2,23 +2,20 @@ from fastapi import FastAPI, HTTPException
 from passlib.context import CryptContext
 import requests
 from models import UserCreate, UpdateLibraries
-from dotenv import load_dotenv
-import os
-#from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
+import config
 
-dotenv_path = Path('/.env')
-load_dotenv(dotenv_path=dotenv_path)
+#from pathlib import Path
+
+#dotenv_path = Path('/.env')
+#load_dotenv(dotenv_path=dotenv_path)
+
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
-MONGO_URI = os.getenv("MONGO_URI")
-DATABASE_NAME = os.getenv("DATABASE_NAME")
-
-client = AsyncIOMotorClient(MONGO_URI)
-database = client[DATABASE_NAME]
+client = AsyncIOMotorClient(config.MONGO_URI)
+database = client[config.DATABASE_NAME]
 users_collection = database["users"]
 
 

@@ -5,22 +5,23 @@ import os
 from pymongo import MongoClient
 import smtplib
 from email.message import EmailMessage
-from dotenv import load_dotenv
-import os
-from pathlib import Path
+import config
 
-dotenv_path = Path('/.env')
-load_dotenv(dotenv_path=dotenv_path)
+# import os
+# from pathlib import Path
+# dotenv_path = Path('/.env')
+# load_dotenv(dotenv_path=dotenv_path)
+
+# REDIS_BROKER = os.getenv("REDIS_BROKER")
+# MONGO_URI = os.getenv("MONGO_URI")
+# DATABASE_NAME = os.getenv("DATABASE_NAME")
 PYPI_URL = "https://pypi.org/pypi/{}/json"
-REDIS_BROKER = os.getenv("REDIS_BROKER")
-MONGO_URI = os.getenv("MONGO_URI")
-DATABASE_NAME = os.getenv("DATABASE_NAME")
 
-client = MongoClient(MONGO_URI)
-database = client[DATABASE_NAME]
+client = MongoClient(config.MONGO_URI)
+database = client[config.DATABASE_NAME]
 users_collection = database["users"]
 
-celery = Celery("tasks", broker=REDIS_BROKER, backend=REDIS_BROKER)
+celery = Celery("tasks", broker=config.REDIS_BROKER, backend=config.REDIS_BROKER)
 celery.conf.timezone = "UTC"
 
 @shared_task
