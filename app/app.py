@@ -5,11 +5,6 @@ from models import UserCreate, UpdateLibraries
 from motor.motor_asyncio import AsyncIOMotorClient
 import config
 
-#from pathlib import Path
-
-#dotenv_path = Path('/.env')
-#load_dotenv(dotenv_path=dotenv_path)
-
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -82,11 +77,3 @@ async def get_user(email: str):
         raise HTTPException(status_code=404, detail="User not found")
     user["_id"] = str(user["_id"])
     return user
-
-
-
-# @app.post("/send_mail")
-# async def send_email(email: EmailSchema):
-#     fm = FastMail(conf)
-#     await fm.send_message(message)
-#     print(message)
